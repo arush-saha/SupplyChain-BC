@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SupplyChain DApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="logo-dot"></span> SupplyChain</a>
+  <nav class="role-nav">
+    <a href="index.html" class="active">Home</a>
+    <a href="manufacturer.html">Manufacturer</a>
+    <a href="supplier.html">Supplier</a>
+    <a href="delivery.html">Delivery</a>
+    <a href="customer.html">Customer</a>
+  </nav>
+  <div class="wallet-box">
+    <span id="walletPill" class="pill" style="display:none;"></span>
+    <button id="connectBtn" class="btn btn-primary">Connect MetaMask</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="notice">
+    ⚠️ Update <code>js/contract-config.js</code> with your real deployed
+    contract address before using this on a live network — see the
+    comment at the top of that file.
+  </div>
+
+  <div class="hero">
+    <h1>Track every product,<br />end to end, on-chain.</h1>
+    <p class="lead">
+      Connect your wallet, register the role you play in the supply chain,
+      then head to your dashboard to create, ship, or track products.
+    </p>
+    <div id="networkLine" class="status-line"></div>
+  </div>
+
+  <div class="section card">
+    <div class="panel-title">Register your role</div>
+    <p class="status-line" style="margin-top:-8px;">
+      One address can only be registered once — pick the role you'll be
+      acting as in this dapp.
+    </p>
+    <div class="row" style="margin-top:16px;">
+      <div class="field">
+        <label for="roleSelect">Role</label>
+        <select id="roleSelect">
+          <option value="1">Manufacturer</option>
+          <option value="2">Supplier</option>
+          <option value="3">Delivery Person</option>
+          <option value="4">Customer</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button id="registerBtn" class="btn btn-primary btn-block">Register</button>
+      </div>
+    </div>
+    <div id="registerStatus" class="status-line"></div>
+    <div id="currentRole" class="status-line"></div>
+  </div>
+
+  <div class="section">
+    <div class="panel-title">Go to your dashboard</div>
+    <div class="grid">
+      <a class="card role-card" href="manufacturer.html">
+        <div class="emoji">🏭</div>
+        <h3>Manufacturer</h3>
+        <p>Register new products and set their initial location.</p>
+      </a>
+      <a class="card role-card" href="supplier.html">
+        <div class="emoji">📦</div>
+        <h3>Supplier</h3>
+        <p>Receive products and move them along the chain.</p>
+      </a>
+      <a class="card role-card" href="delivery.html">
+        <div class="emoji">🚚</div>
+        <h3>Delivery Person</h3>
+        <p>Mark products out for delivery and hand off to customers.</p>
+      </a>
+      <a class="card role-card" href="customer.html">
+        <div class="emoji">🧾</div>
+        <h3>Customer</h3>
+        <p>Track any product's full journey on a live timeline.</p>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/contract-config.js"></script>
+<script src="js/app-common.js"></script>
+<script>
+  async function refreshMyRole() {
+    if (!requireContract()) return;
+    const roleLine = document.getElementById("currentRole");
+    try {
+      const roleIdx = await contract.userRoles(currentAccount);
+      roleLine.textContent = "Currently registered as: " + ROLE_LABELS[Number(roleIdx)];
+    } catch (err) {
+      roleLine.textContent = "";
+    }
+  }
+
+  initWalletUI(refreshMyRole);
+
+  document.getElementById("registerBtn").addEventListener("click", async () => {
+    if (!requireContract()) return;
+    const statusEl = document.getElementById("registerStatus");
+    const role = Number(document.getElementById("roleSelect").value);
+    try {
+      setStatus(statusEl, "Confirm the transaction in MetaMask…");
+      const tx = await contract.registerUser(role);
+      setStatus(statusEl, "Waiting for confirmation… (" + tx.hash + ")");
+      await tx.wait();
+      setStatus(statusEl, "Registered as " + ROLE_LABELS[role] + ".", "ok");
+      refreshMyRole();
+    } catch (err) {
+      console.error(err);
+      setStatus(statusEl, "Transaction failed: " + (err.reason || err.message || err), "error");
+    }
+  });
+</script>
+</body>
+</html>
